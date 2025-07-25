@@ -21,15 +21,17 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="header-content">
-          <h1 className="app-title">Kottakkal Traffic Management System</h1>
           <button 
             className="menu-toggle"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
+          > 
             <span></span>
             <span></span>
             <span></span>
           </button>
+          <div className="title-wrapper">
+            <h1 className="app-title">Kottakkal Traffic Management System</h1>
+          </div>
         </div>
       </header>
 

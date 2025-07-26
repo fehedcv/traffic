@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Kottakkal Traffic Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body style="margin: 0;">
+  <div id="map" style="width: 100vw; height: 100vh;"></div>
+
+  <script>
+    const map = L.map('map', {
+      center: [10.9976, 76.0061],
+      zoom: 14,
+      zoomControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    const incidentReports = []; // in-memory storage
+
+    const routes = {
+      "edarikode-chankuvetty": {
+        coords: [[10.994829, 75.980587], [10.998964, 75.991615]],
+        polyline: null
+      },
+      "chankuvetty-kottakkal": {
+        coords: [[10.999234, 75.992199], [11.000957, 76.004109]],
+        polyline: null
+      },
+      "kottakkal-puthur": {
+        coords: [[11.000957, 76.004111], [11.003698, 76.013232]],
+        polyline: null
+      },
+      "chankuvetty-palathara": {
+        coords: [[10.999234, 75.992199], [10.988705, 75.993691]]
+      },
+      "mammalippadi-edarikode": {
+        coords: [[10.983156, 75.972862], [10.994759, 75.980673]]
+      }
+    };
+
+    const places = [
+      { name: "Edarikode", coords: [10.994759, 75.980673] },
+      { name: "Chankuvetty", coords: [10.999145, 75.991659] },
+      { name: "Kottakkal", coords: [11.001085, 76.004019] },
+      { name: "Puthur", coords: [11.003952, 76.013288] },
+      { name: "Palathara", coords: [10.988705, 75.993691] },
+      { name: "Mammalippadi", coords: [10.983156, 75.972862] }
+    ];
+
+    places.forEach(place => {
+      L.marker(place.coords)
+        .addTo(map)
+        .bindTooltip(place.name, { permanent: true, direction: 'right' });
+    });
+
+    map.on('click', function (e) {
+      const lat = e.latlng.lat.toFixed(6);
+      const lng = e.latlng.lng.toFixed(6);
+      const now = new Date().toISOString();
+
+      const formHtml = `
+        <div style="width: 250px;">
+          <form id="incidentForm">
+            <label><strong>Place:</strong></label><br>
+            <input type="text" name="place" required style="width: 100%; margin-bottom: 5px;" />
+
+            <label><strong>Incident Type:</strong></label><br>
+            <select name="type" required style="width: 100%; margin-bottom: 5px;">
+              <option value="">Select...</option>
+              <option>Vehicle Accident</option>
+              <option>Vehicle Breakdown</option>
+              <option>Road Blockage</option>
+              <option>Construction Work</option>
+              <option>Other</option>
+            </select>
+
+            <label><strong>Description:</strong></label><br>
+            <textarea name="description" rows="3" style="width: 100%; margin-bottom: 5px;" required></textarea>
+
+            <input type="hidden" name="lat" value="${lat}">
+            <input type="hidden" name="lng" value="${lng}">
+            <input type="hidden" name="time" value="${now}">
+
+            <button type="submit" style="width: 100%; background: #dc3545; color: white; padding: 6px; border: none; border-radius: 4px;">
+              Submit
+            </button>
+          </form>
+        </div>
+      `;
+
+      const popup = L.popup({
+        closeOnClick: true,
+        autoClose: true,
+        className: 'incident-popup',
+        maxWidth: 300
+      })
+        .setLatLng(e.latlng)
+        .setContent(formHtml)
+        .openOn(map);
+
+      setTimeout(() => {
+        const form = document.getElementById('incidentForm');
+        form.addEventListener('submit', function (event) {
+          event.preventDefault();
+
+          const formData = new FormData(form);
+          const data = Object.fromEntries(formData.entries());
+
+          // Store in memory
+          incidentReports.push(data);
+
+          // Add hazard marker
+          const hazardIcon = L.divIcon({
+            className: 'hazard-icon',
+            html: '⚠️',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+          });
+
+          const tooltipText = `
+            📍 <strong>${data.place}</strong><br>
+            🚨 <strong>${data.type}</strong><br>
+            📝 ${data.description}
+          `;
+
+          L.marker([data.lat, data.lng], { icon: hazardIcon })
+            .addTo(map)
+            .bindTooltip(tooltipText, {
+              direction: 'top',
+              offset: [0, -10]
+            });
+
+          map.closePopup();
+        });
+      }, 100);
+    });
+
+    function getColor(level) {
+      return level === "high" ? "red" :
+             level === "moderate" ? "orange" : "green";
+    }
+
+    async function updateTraffic() {
+      for (const [route, info] of Object.entries(routes)) {
+        const res = await fetch(`https://4a1d5b339c98.ngrok-free.app/traffic/${route}`);
+        const data = await res.json();
+
+        if (info.polyline) map.removeLayer(info.polyline);
+        info.polyline = L.polyline(info.coords, {
+          color: getColor(data.level),
+          weight: 6
+        }).addTo(map);
+      }
+    }
+
+    updateTraffic();
+    setInterval(updateTraffic, 10000);
+  </script>
+</body>
+</html>

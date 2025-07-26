@@ -3,20 +3,6 @@ import { AlertTriangle, Clock, Ambulance, X } from 'lucide-react'
 const Sidebar = ({ isOpen, onPopupOpen, onClose }) => {
   const menuItems = [
     {
-      id: 'incident',
-      title: 'Report Incident/Crash',
-      icon: AlertTriangle,
-      color: 'var(--color-error)',
-      description: 'Report traffic accidents or incidents'
-    },
-    {
-      id: 'recovery',
-      title: 'Traffic Recovery Time',
-      icon: Clock,
-      color: 'var(--color-warning)',
-      description: 'Estimate traffic clearance time'
-    },
-    {
       id: 'ambulance',
       title: 'Emergency Ambulance',
       icon: Ambulance,

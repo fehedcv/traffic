@@ -6,11 +6,11 @@ An intelligent, AI-powered, real-time traffic monitoring and routing application
 
 ---
 
-![Screenshot 1](/assets/page1.png)
-![Screenshot 2](/assets/page2.png)
-![Screenshot 3](/assets/page3.png)
-![Screenshot 4](/assets/page4.png)
-![Screenshot 5](/assets/page5.png)
+![Screenshot 1](/assets/page1.jpeg)
+![Screenshot 2](/assets/page2.jpeg)
+![Screenshot 3](/assets/page3.jpeg)
+![Screenshot 4](/assets/page4.jpeg)
+![Screenshot 5](/assets/page5.jpeg)
 
 ---
 

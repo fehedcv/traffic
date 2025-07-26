@@ -35,7 +35,7 @@ function App() {
               <span></span>
             </button>
             <div className="title-wrapper">
-              <h1 className="app-title">Kottakkal Traffic Management System</h1>
+              <h1 className="app-title">Kottakkal Traffic Monitoring System</h1>
             </div>
           </div>
         </header>

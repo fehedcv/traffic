@@ -57,14 +57,14 @@ body {
 
 .title-wrapper {
   position: absolute;
-  left: 60%;
+  left: 70%;
   transform: translateX(-50%);
   text-align: center;
 }
 
 .app-title {
   font-family:'Times New Roman', Georgia, serif;
-  font-size: 1.7rem;
+  font-size: 1.3rem;
   font-weight: 550;
   text-align: center;
   margin: 0;

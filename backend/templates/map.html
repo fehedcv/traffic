@@ -6,9 +6,58 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.polyline.snakeanim@1.0.0/Leaflet.Polyline.SnakeAnim.js"></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+  <style>
+    /* Add some basic styling for the body to ensure full coverage */
+    body {
+      margin: 0;
+      overflow: hidden; /* Prevent scrollbars if map exceeds viewport */
+    }
+
+    #map {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* Style for the buttons */
+    .map-button {
+      position: absolute;
+      padding: 8px 14px;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: sans-serif; /* Make font readable */
+      font-size: 14px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2); /* Add a subtle shadow */
+      z-index: 1001; /* Set a high z-index to ensure visibility above the map */
+    }
+
+    #clearRoutes {
+      top: 10px;
+      right: 10px;
+      background: #dc3545; /* Red for danger/clear */
+    }
+
+    #clearReroutes {
+      top: 50px; /* Adjust top position to avoid overlapping */
+      right: 10px;
+      background: #007bff; /* Blue for primary action */
+    }
+
+    /* Optional: Hover effects for buttons */
+    .map-button:hover {
+      opacity: 0.9;
+    }
+  </style>
 </head>
 <body style="margin: 0;">
-  <div id="map" style="width: 100vw; height: 100vh;"></div>
+  <div id="map"></div>
+  <button id="clearRoutes" class="map-button">Clear Routes</button>
+  <button id="clearReroutes" class="map-button">Clear Reroutes</button>
+  <button id="toggleHeat" style="position: absolute; top: 90px; right: 10px; z-index: 9999; padding: 8px 14px; background: purple; color: white; border: none; border-radius: 4px; cursor: pointer;">Toggle Heatmap</button>
+
 
   <script>
     const map = L.map('map', {
@@ -21,26 +70,41 @@
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    const incidentReports = []; // in-memory storage
+    const incidentReports = [];
+    const customRouteLayers = [];
+    let startMarker = null;
+    let endMarker = null;
 
     const routes = {
       "edarikode-chankuvetty": {
         coords: [[10.994829, 75.980587], [10.998964, 75.991615]],
-        polyline: null
+        shortcut: [[10.994829, 75.980587], [10.988705, 75.993691], [10.998964, 75.991615]],
+        polyline: null,
+        autoRoute: true
       },
       "chankuvetty-kottakkal": {
         coords: [[10.999234, 75.992199], [11.000957, 76.004109]],
-        polyline: null
+        shortcut: [[10.994829, 75.980587], [10.988705, 75.993691], [10.998964, 75.991615]],
+        polyline: null,
+        autoRoute: true
       },
       "kottakkal-puthur": {
         coords: [[11.000957, 76.004111], [11.003698, 76.013232]],
-        polyline: null
+        shortcut: [[10.994829, 75.980587], [10.988705, 75.993691], [10.998964, 75.991615]],
+        polyline: null,
+        autoRoute: true
       },
       "chankuvetty-palathara": {
-        coords: [[10.999234, 75.992199], [10.988705, 75.993691]]
+        coords: [[10.999234, 75.992199], [10.988705, 75.993691]],
+        shortcut: [[10.994829, 75.980587], [10.988705, 75.993691], [10.998964, 75.991615]],
+        polyline: null,
+        autoRoute: true
       },
       "mammalippadi-edarikode": {
-        coords: [[10.983156, 75.972862], [10.994759, 75.980673]]
+        coords: [[10.983156, 75.972862], [10.994759, 75.980673]],
+        shortcut: [[10.994829, 75.980587], [10.988705, 75.993691], [10.998964, 75.991615]],
+        polyline: null,
+        autoRoute: true
       }
     };
 
@@ -59,105 +123,172 @@
         .bindTooltip(place.name, { permanent: true, direction: 'right' });
     });
 
-    map.on('click', function (e) {
-      const lat = e.latlng.lat.toFixed(6);
-      const lng = e.latlng.lng.toFixed(6);
-      const now = new Date().toISOString();
+    map.on('click', async function (e) {
+    // If both markers are already set, clear previous route and markers
+    if (startMarker && endMarker) {
+      map.removeLayer(startMarker);
+      map.removeLayer(endMarker);
+      customRouteLayers.forEach(layer => map.removeLayer(layer));
+      customRouteLayers.length = 0;
+      startMarker = null;
+      endMarker = null;
 
-      const formHtml = `
-        <div style="width: 250px;">
-          <form id="incidentForm">
-            <label><strong>Place:</strong></label><br>
-            <input type="text" name="place" required style="width: 100%; margin-bottom: 5px;" />
+      // ALSO clear rerouted traffic routes
+      for (const key in routes) {
+        if (routes[key].polyline) {
+          map.removeLayer(routes[key].polyline);
+          routes[key].polyline = null;
+        }
+      }
 
-            <label><strong>Incident Type:</strong></label><br>
-            <select name="type" required style="width: 100%; margin-bottom: 5px;">
-              <option value="">Select...</option>
-              <option>Vehicle Accident</option>
-              <option>Vehicle Breakdown</option>
-              <option>Road Blockage</option>
-              <option>Construction Work</option>
-              <option>Other</option>
-            </select>
+      // Now treat this click as a new startMarker
+      startMarker = L.marker(e.latlng, {
+        icon: L.divIcon({
+          className: '',
+          html: '🟢',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        })
+      }).addTo(map);
+      return;
+    }
 
-            <label><strong>Description:</strong></label><br>
-            <textarea name="description" rows="3" style="width: 100%; margin-bottom: 5px;" required></textarea>
+    if (!startMarker) {
+      startMarker = L.marker(e.latlng, {
+        icon: L.divIcon({
+          className: '',
+          html: '🟢',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        })
+      }).addTo(map);
+    } else {
+      endMarker = L.marker(e.latlng, {
+        icon: L.divIcon({
+          className: '',
+          html: '🔴',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        })
+      }).addTo(map);
 
-            <input type="hidden" name="lat" value="${lat}">
-            <input type="hidden" name="lng" value="${lng}">
-            <input type="hidden" name="time" value="${now}">
+      const url = `https://router.project-osrm.org/route/v1/driving/${startMarker.getLatLng().lng},${startMarker.getLatLng().lat};${endMarker.getLatLng().lng},${endMarker.getLatLng().lat}?overview=full&geometries=geojson`;
+      const response = await fetch(url);
+      const data = await response.json();
 
-            <button type="submit" style="width: 100%; background: #dc3545; color: white; padding: 6px; border: none; border-radius: 4px;">
-              Submit
-            </button>
-          </form>
-        </div>
-      `;
+      if (data.routes && data.routes.length > 0) {
+        const coords = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+        const polyline = L.polyline(coords, { color: 'lime', weight: 5, snakingSpeed: 200 }).addTo(map);
+        polyline.snakeIn();
+        customRouteLayers.push(polyline);
 
-      const popup = L.popup({
-        closeOnClick: true,
-        autoClose: true,
-        className: 'incident-popup',
-        maxWidth: 300
-      })
-        .setLatLng(e.latlng)
-        .setContent(formHtml)
-        .openOn(map);
+      } else {
+        alert('⚠️ Failed to fetch route.');
+      }
+    }
+  });
 
-      setTimeout(() => {
-        const form = document.getElementById('incidentForm');
-        form.addEventListener('submit', function (event) {
-          event.preventDefault();
 
-          const formData = new FormData(form);
-          const data = Object.fromEntries(formData.entries());
+    document.getElementById("clearRoutes").addEventListener("click", () => {
+      customRouteLayers.forEach(line => map.removeLayer(line));
+      customRouteLayers.length = 0;
+      if (startMarker) map.removeLayer(startMarker);
+      if (endMarker) map.removeLayer(endMarker);
+      startMarker = null;
+      endMarker = null;
+    });
 
-          // Store in memory
-          incidentReports.push(data);
-
-          // Add hazard marker
-          const hazardIcon = L.divIcon({
-            className: 'hazard-icon',
-            html: '⚠️',
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
-          });
-
-          const tooltipText = `
-            📍 <strong>${data.place}</strong><br>
-            🚨 <strong>${data.type}</strong><br>
-            📝 ${data.description}
-          `;
-
-          L.marker([data.lat, data.lng], { icon: hazardIcon })
-            .addTo(map)
-            .bindTooltip(tooltipText, {
-              direction: 'top',
-              offset: [0, -10]
-            });
-
-          map.closePopup();
-        });
-      }, 100);
+    document.getElementById("clearReroutes").addEventListener("click", () => {
+      for (const key in routes) {
+        if (routes[key].polyline) {
+          map.removeLayer(routes[key].polyline);
+          routes[key].polyline = null;
+        }
+      }
     });
 
     function getColor(level) {
-      return level === "high" ? "red" :
-             level === "moderate" ? "orange" : "green";
+      return level === "high" ? "red" : level === "moderate" ? "orange" : "green";
     }
 
     async function updateTraffic() {
-      for (const [route, info] of Object.entries(routes)) {
-        const res = await fetch(`https://4a1d5b339c98.ngrok-free.app/traffic/${route}`);
+      for (const [routeName, info] of Object.entries(routes)) {
+        // Note: The ngrok URL `https://4a1d5b339c98.ngrok-free.app` is temporary and will expire.
+        // For a long-term solution, you would need a stable backend URL.
+        const res = await fetch(`https://4a1d5b339c98.ngrok-free.app/traffic/${routeName}`);
         const data = await res.json();
+        const level = data.level;
 
-        if (info.polyline) map.removeLayer(info.polyline);
-        info.polyline = L.polyline(info.coords, {
-          color: getColor(data.level),
-          weight: 6
-        }).addTo(map);
+        if (info.polyline) {
+          map.removeLayer(info.polyline);
+          info.polyline = null;
+        }
+
+        const color = getColor(level);
+
+        if (level === "high") {
+          if (info.autoRoute) {
+            const from = info.coords[0];
+            const to = info.coords[info.coords.length - 1];
+            const url = `https://router.project-osrm.org/route/v1/driving/${from[1]},${from[0]};${to[1]},${to[0]}?overview=full&geometries=geojson`;
+            const routeRes = await fetch(url);
+            const routeData = await routeRes.json();
+
+            if (routeData.routes && routeData.routes.length > 0) {
+              const coords = routeData.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+              info.polyline = L.polyline(coords, { color: 'blue', weight: 5, dashArray: '8, 8' }).addTo(map);
+            } else {
+              console.warn(`⚠️ Failed to reroute ${routeName}`);
+            }
+          } else if (info.shortcut) {
+            info.polyline = L.polyline(info.shortcut, { color: 'blue', weight: 5, dashArray: '6, 6' }).addTo(map);
+          } else {
+            info.polyline = L.polyline(info.coords, { color, weight: 6 }).addTo(map);
+          }
+        } else {
+          info.polyline = L.polyline(info.coords, { color, weight: 6 }).addTo(map);
+        }
       }
+      updateHeatmap();
     }
+
+    let heatLayer = null;
+
+    function updateHeatmap() {
+      const points = [];
+
+      for (const [routeName, info] of Object.entries(routes)) {
+        const res = info.coords;
+        if (res && res.length > 0) {
+          points.push(...res.map(p => [...p, 0.4])); // lat, lng, intensity
+        }
+      }
+
+      if (heatLayer) map.removeLayer(heatLayer);
+
+      heatLayer = L.heatLayer(points, {
+        radius: 25,
+        blur: 15,
+        maxZoom: 17,
+        gradient: {
+          0.2: 'green',
+          0.5: 'orange',
+          0.8: 'red'
+        }
+      }).addTo(map);
+    }
+    let heatVisible = true;
+    document.getElementById("toggleHeat").addEventListener("click", () => {
+      if (heatLayer) {
+        if (heatVisible) {
+          map.removeLayer(heatLayer);
+        } else {
+          heatLayer.addTo(map);
+        }
+        heatVisible = !heatVisible;
+      }
+    });
+
 
     updateTraffic();
     setInterval(updateTraffic, 10000);

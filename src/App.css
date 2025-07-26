@@ -661,3 +661,9 @@ textarea {
     font-size: 0.75rem;
   }
 }
+
+.main-content {
+  flex: 1;
+  height: calc(100vh - 60px); /* Adjust if you have a header */
+  position: relative;
+}

@@ -1,102 +1,125 @@
+# 🚦 Kottakkal Smart Traffic Management System
 
-# Kottakkal Smart Traffic Management System
+An intelligent, AI-powered, real-time traffic monitoring and routing application tailored for **Kottakkal, Kerala**. This project integrates **live traffic visualization**, **CCTV-based surveillance analysis**, and **dynamic rerouting** to support emergency services, public transport, and daily commuters.
 
-An intelligent web-based traffic monitoring and routing application tailored for Kottakkal, Kerala. This project integrates real-time traffic visualization, AI-powered surveillance analysis, and responsive route planning to support emergency services, commuters, and civic authorities.
+> Built with React, Leaflet, FastAPI, and AI models like YOLOv8 – it's your complete smart traffic assistant.
 
-![ScreenShot](/assets/page1.png)
+---
 
+![Screenshot 1](/assets/page1.png)
+![Screenshot 2](/assets/page2.png)
+![Screenshot 3](/assets/page3.png)
+![Screenshot 4](/assets/page4.png)
+![Screenshot 5](/assets/page5.png)
 
-![ScreenShot](/assets/page2.png)
+---
 
+## 📚 Table of Contents
 
+- [Features](#features)
+- [Tech Stack](#-tech-stack)
+- [Installation](#-installation)
+- [Deployment](#deployment)
+- [Contributors](#-contributors)
+- [License](#license)
 
-![ScreenShot](/assets/page3.png)
+---
 
+## 🚀 Features
 
-![ScreenShot](/assets/page4.png)
+### 🔍 Smart Traffic Intelligence
 
+- 🎥 **Automatic Traffic Analysis using AI + CCTV Feeds**  
+  Detects traffic congestion, accidents, unusual vehicle behavior, and roadblocks using real-time surveillance camera streams with AI models like YOLOv8 and OpenCV.
 
+### 🚧 Incident & Hazard Reporting
 
-![ScreenShot](/assets/page5.png)
+- 🛠️ Detects & reports:
+  - Accidents  
+  - Road constructions  
+  - Waterlogging  
+  - Crowd gatherings  
+- Supports both automatic (via AI) and manual (admin/user) input.
 
+### 🔄 Dynamic Re-route Finder
 
-## Features
-**🔍 Smart Traffic Intelligence**
+- 🚗 Suggests optimal alternate routes when congestion or incidents are detected.
+- Perfect for **ambulances**, **fire services**, and **VIP movement**.
 
-🎥 Automatic Traffic Analysis using AI + CCTV Feeds
-Detects congestion, accidents, unusual vehicle patterns, and roadblocks in real time using live surveillance footage.
+### 🗺️ Interactive Map Features
 
-**🚧 Incident Reporting System**
+- 🐍 **Snake Path Animation**  
+  Simulates live vehicle movement along selected routes with animated polyline drawing.
 
-Detects and reports accidents, road construction, waterlogging, and more—automatically or via user/admin input.
+- 📍 **Manual & Smart Routing**  
+  - Click-to-select start/end points  
+  - Or let the system auto-suggest best path via OSRM
 
-**🔄 Dynamic Reroute Finder**
+- 🔥 **Traffic Heatmap**  
+  Live traffic intensity visualized using `leaflet.heat`.
 
-Suggests alternate low-traffic routes intelligently when congestion or incidents are detected.
+- 📢 **Live News Marquee**  
+  Displays traffic alerts, emergency notices, and other updates in real-time.
 
-**🗺️ Interactive Mapping System**
+- 📱 **Mobile-Responsive UI**  
+  Seamlessly works across desktops, tablets, and mobile phones.
 
-- 🐍 Snake Path Animation
-- Simulates live vehicle movement along a polyline route.
+---
 
-- 📍 Manual & Smart Routing
-    Click to set start and end points, or allow the system to auto-suggest optimal paths.
-
-- 📢 Live News Marquee
-    Scrolls live traffic alerts, emergency updates, and system messages.
-
-- 🧭 Mobile-Responsive UI
-    Built with React and Leaflet for full cross-device compatibility.
 ## ⚙️ Tech Stack
 
-- Layer	Technology Used
-- Frontend	React.js, Leaflet, Tailwind CSS
-- Mapping	OpenStreetMap, leaflet.heat, snake plugin
-- AI Models	YOLOv8(Ultralitics), OpenCV (for surveillance AI)
-- Backend	FastAPI
-- Deployment	Ngrok
+| Layer      | Technology Used                            |
+|------------|---------------------------------------------|
+| Frontend   | React.js, Leaflet.js, Tailwind CSS          |
+| Mapping    | OpenStreetMap, Leaflet Heatmap, Snake Plugin |
+| AI Models  | YOLOv8 (Ultralytics), OpenCV (Python)       |
+| Backend    | FastAPI (Python)                            |
+| Deployment | Ngrok (for dev tunneling), GitHub           |
 
+---
 
-## Deployment
+## 🛠️ Installation
 
-To deploy this project run
+### Clone the Repository
 
-
-Clone the Project
 ```bash
-  git clone https://github.com/fehedcv/traffic.git
-```
-
-change into directory
-```bash
+git clone https://github.com/fehedcv/traffic.git
 cd kottakkal-traffic-system
 
-```
+Install Frontend Dependencies
 
- Install Dependencies
- ```bash 
- npm install
-```
- Run Locally
+npm install
 
- ```bash 
- npm run dev
-```
+Run the Frontend
 
-Run the back-end
-```bash
-  uvcorn app:main --reaload
-```
+npm run dev
+
+Start the Backend API (FastAPI)
+
+uvicorn app:main --reload
+
+> Ensure your Python virtual environment is activated and requirements.txt is installed (pip install -r requirements.txt).
 
 
-# 👨‍💻 Contributors
 
-- *[FahadCv](https://github.com/fehedcv)*
-- *[Parveen MT](https://github.com/ReverseEngineeringDude)*
-- *[Amna Parambat](https://github.com/Amna-parambat)*
-- *[Mufeeda Moideenkutty](https://github.com/mufeeda-moideen)*
 
-## License
+---
 
-[MIT](https://choosealicense.com/licenses/mit/)
+👨‍💻 Contributors
 
+<table>
+  <tr>
+    <td><a href="https://github.com/fehedcv"><img src="https://avatars.githubusercontent.com/fehedcv" width="60px;" alt=""/><br /><sub><b>Fahad Cv</b></sub></a></td>
+    <td><a href="https://github.com/ReverseEngineeringDude"><img src="https://avatars.githubusercontent.com/ReverseEngineeringDude" width="60px;" alt=""/><br /><sub><b>Parveen MT</b></sub></a></td>
+    <td><a href="https://github.com/Amna-parambat"><img src="https://avatars.githubusercontent.com/Amna-parambat" width="60px;" alt=""/><br /><sub><b>Amna Parambat</b></sub></a></td>
+    <td><a href="https://github.com/mufeeda-moideen"><img src="https://avatars.githubusercontent.com/mufeeda-moideen" width="60px;" alt=""/><br /><sub><b>Mufeeda Moideenkutty</b></sub></a></td>
+  </tr>
+</table>
+---
+
+📝 License
+
+This project is licensed under the MIT License.
+
+
+---

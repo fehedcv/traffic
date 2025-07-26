@@ -28,7 +28,10 @@ routes = [
     "chankuvetty-kottakkal",
     "kottakkal-puthur",
     "chankuvetty-palathara",
-    "mammalippadi-edarikode"
+    "mammalippadi-edarikode",
+    "palathara-randathani",
+    "kozhichena-edarikode",
+    "puthur-cherukunn"
 ]
 
 traffic_data = {
@@ -43,7 +46,7 @@ traffic_data = {
 def get_traffic_level(count):
     if count > 15:
         return "high"
-    elif count > 8:
+    elif count > 6:
         return "moderate"
     else:
         return "low"

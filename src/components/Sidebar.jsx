@@ -1,4 +1,5 @@
-import { AlertTriangle, Clock, Ambulance, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { AlertTriangle, Ambulance, X } from 'lucide-react'
 
 const Sidebar = ({ isOpen, onPopupOpen, onClose }) => {
   const menuItems = [
@@ -7,7 +8,17 @@ const Sidebar = ({ isOpen, onPopupOpen, onClose }) => {
       title: 'Emergency Ambulance',
       icon: Ambulance,
       color: 'var(--color-success)',
-      description: 'Request emergency medical services'
+      description: 'Request emergency medical services',
+      actionType: 'popup'
+    },
+    {
+      id: 'dashboard',
+      title: 'Dashboard',
+      icon: AlertTriangle,
+      color: 'var(--color-warning)',
+      description: 'View traffic dashboard',
+      to: '/dashboard',
+      actionType: 'link'
     }
   ]
 
@@ -25,12 +36,34 @@ const Sidebar = ({ isOpen, onPopupOpen, onClose }) => {
         <nav className="sidebar-nav">
           {menuItems.map((item, index) => {
             const IconComponent = item.icon
+            const delayStyle = { '--delay': `${index * 0.1}s` }
+
+            if (item.actionType === 'link') {
+              return (
+                <Link
+                  key={item.id}
+                  to={item.to}
+                  className="sidebar-item"
+                  style={delayStyle}
+                  onClick={onClose}
+                >
+                  <div className="sidebar-icon" style={{ color: item.color }}>
+                    <IconComponent size={24} />
+                  </div>
+                  <div className="sidebar-content">
+                    <h3>{item.title}</h3>
+                    <p>{item.description}</p>
+                  </div>
+                </Link>
+              )
+            }
+
             return (
               <button
                 key={item.id}
                 className="sidebar-item"
                 onClick={() => onPopupOpen(item.id)}
-                style={{ '--delay': `${index * 0.1}s` }}
+                style={delayStyle}
               >
                 <div className="sidebar-icon" style={{ color: item.color }}>
                   <IconComponent size={24} />

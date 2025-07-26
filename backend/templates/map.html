@@ -75,6 +75,7 @@
     let startMarker = null;
     let endMarker = null;
 
+    
     const routes = {
       "edarikode-chankuvetty": {
         coords: [[10.994829, 75.980587], [10.998964, 75.991615]],
@@ -105,7 +106,23 @@
         shortcut: [[10.994829, 75.980587], [10.988705, 75.993691], [10.998964, 75.991615]],
         polyline: null,
         autoRoute: true
+      },
+      "palathara-randathani":{
+        coords: [[10.988705, 75.993691],[10.978184, 76.002213] ],
+        polyline:null,
+        autoRoute:false
+      },
+      "kozhichena-edarikode":{
+        coords:[[10.996671, 75.960398],[10.994759, 75.980673]],
+        polyline:null,
+        autoRoute:true
+      },
+      "puthur-cherukunn":{
+        coords:[[11.003952, 76.013288],[11.016614, 76.015642]],
+        polyline:null,
+        autoRoute:true
       }
+
     };
 
     const places = [
@@ -114,7 +131,10 @@
       { name: "Kottakkal", coords: [11.001085, 76.004019] },
       { name: "Puthur", coords: [11.003952, 76.013288] },
       { name: "Palathara", coords: [10.988705, 75.993691] },
-      { name: "Mammalippadi", coords: [10.983156, 75.972862] }
+      { name: "Mammalippadi", coords: [10.983156, 75.972862] },
+      { name: "Randathani", coords: [10.978184, 76.002213]},
+      {name: "Kozhichena", coords: [10.996671, 75.960398]},
+      { name: "Cherukunn", coords: [11.016614, 76.015642]}
     ];
 
     places.forEach(place => {
@@ -250,7 +270,134 @@
         }
       }
       updateHeatmap();
+    let routeStart = null;
+
+    map.on('click', async function (e) {
+      if (!routeStart) {
+        routeStart = e.latlng;
+        L.marker(routeStart, { icon: L.divIcon({ className: '', html: '🟢', iconSize: [24, 24], iconAnchor: [12, 12] }) }).addTo(map);
+      } else {
+        const routeEnd = e.latlng;
+        L.marker(routeEnd, { icon: L.divIcon({ className: '', html: '🔴', iconSize: [24, 24], iconAnchor: [12, 12] }) }).addTo(map);
+
+        const url = `https://router.project-osrm.org/route/v1/driving/${routeStart.lng},${routeStart.lat};${routeEnd.lng},${routeEnd.lat}?overview=full&geometries=geojson`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.routes && data.routes.length > 0) {
+          const coords = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+          L.polyline(coords, { color: 'lime', weight: 5 }).addTo(map);
+        } else {
+          alert('⚠️ Failed to fetch route.');
+        }
+        routeStart = null;
+      }
+    });
+
+    map.on('contextmenu', function (e) {
+      const lat = e.latlng.lat.toFixed(6);
+      const lng = e.latlng.lng.toFixed(6);
+      const now = new Date().toISOString();
+
+      const formHtml = `
+        <div style="width: 250px;">
+          <form id="incidentForm">
+            <label><strong>Place:</strong></label><br>
+            <input type="text" name="place" required style="width: 100%; margin-bottom: 5px;" />
+
+            <label><strong>Incident Type:</strong></label><br>
+            <select name="type" required style="width: 100%; margin-bottom: 5px;">
+              <option value="">Select...</option>
+              <option>Vehicle Accident</option>
+              <option>Vehicle Breakdown</option>
+              <option>Road Blockage</option>
+              <option>Construction Work</option>
+              <option>Other</option>
+            </select>
+
+            <label><strong>Description:</strong></label><br>
+            <textarea name="description" rows="3" style="width: 100%; margin-bottom: 5px;" required></textarea>
+
+            <input type="hidden" name="lat" value="${lat}">
+            <input type="hidden" name="lng" value="${lng}">
+            <input type="hidden" name="time" value="${now}">
+
+            <button type="submit" style="width: 100%; background: #dc3545; color: white; padding: 6px; border: none; border-radius: 4px;">
+              Submit
+            </button>
+          </form>
+        </div>
+      `;
+
+      const popup = L.popup({ closeOnClick: true, autoClose: true, className: 'incident-popup', maxWidth: 300 })
+        .setLatLng(e.latlng)
+        .setContent(formHtml)
+        .openOn(map);
+
+      setTimeout(() => {
+        const form = document.getElementById('incidentForm');
+        form.addEventListener('submit', function (event) {
+          event.preventDefault();
+
+          const formData = new FormData(form);
+          const data = Object.fromEntries(formData.entries());
+
+          incidentReports.push(data);
+
+          const hazardIcon = L.divIcon({ className: 'hazard-icon', html: '⚠️', iconSize: [24, 24], iconAnchor: [12, 12] });
+
+          const tooltipText = `
+            📍 <strong>${data.place}</strong><br>
+            🚨 <strong>${data.type}</strong><br>
+            📝 ${data.description}
+          `;
+
+          L.marker([data.lat, data.lng], { icon: hazardIcon })
+            .addTo(map)
+            .bindTooltip(tooltipText, { direction: 'top', offset: [0, -10] });
+
+          map.closePopup();
+        });
+      }, 100);
+    });
+
+    function getColor(level) {
+  return level === "high" ? "red" : level === "moderate" ? "orange" : "green";
+}
+
+async function updateTraffic() {
+  for (const [routeName, info] of Object.entries(routes)) {
+    const res = await fetch(`https://4a1d5b339c98.ngrok-free.app/traffic/${routeName}`);
+    const data = await res.json();
+    const level = data.level;
+
+    if (info.polyline) {
+      map.removeLayer(info.polyline);
+      info.polyline = null;
     }
+
+    const color = getColor(level);
+
+    const from = info.coords[0];
+    const to = info.coords[info.coords.length - 1];
+
+    const url = `https://router.project-osrm.org/route/v1/driving/${from[1]},${from[0]};${to[1]},${to[0]}?overview=full&geometries=geojson`;
+    const routeRes = await fetch(url);
+    const routeData = await routeRes.json();
+
+    if (routeData.routes && routeData.routes.length > 0) {
+      const coords = routeData.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+
+      info.polyline = L.polyline(coords, {
+        color: color,      // red/orange/green based on traffic
+        weight: 6
+      }).addTo(map);
+    } else {
+      console.warn(`⚠️ Failed to fetch route for ${routeName}`);
+    }
+  }
+}
+
 
     let heatLayer = null;
 
@@ -291,7 +438,7 @@
 
 
     updateTraffic();
-    setInterval(updateTraffic, 10000);
+    setInterval(updateTraffic, 30000);
   </script>
 </body>
 </html>
